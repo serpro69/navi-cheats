@@ -27,11 +27,19 @@ gcloud projects list --filter="parent.id:<parent_id> AND labels.firebase:enabled
 # Get the IAM policy for a project
 gcloud projects get-iam-policy <project>
 
+% gcloud, project, iam, add
+@ gcloud, common
+# Add an IAM policy binding to a project
+gcloud projects add-iam-policy-binding <project> --member=<member> --role=<role>
+
+$ role: gcloud iam roles list --project=<project> --format='value(name)'
+$ member: echo "user:<user_email> serviceAccount:<sa_email> group:<group_email>"
+
 % gcloud, project, iam, permissions, user
 # Find all projects a specific user or service account has IAM roles in
 ```sh
 # This script iterates through all projects and filters IAM policies for the specified member.
-_NAVI_CHT_MEMBER='<member>'; \
+_NAVI_CHT_MEMBER='<member_full>'; \
 for proj in $(gcloud projects list --format="value(projectId)"); do
   ROLES=$(gcloud projects get-iam-policy "$proj" \
     --flatten="bindings" \
@@ -45,8 +53,15 @@ done; \
 unset _NAVI_CHT_MEMBER
 ```
 $ type: echo "user serviceAccount group" | tr ' ' '\n'
-$ member: echo "<type>:<email>"
+$ member_full: echo "<type>:<email>"
 
+% gcloud, iam, service-account, iam, add
+@ gcloud, common
+# Add an IAM policy binding to a service account (e.g., to allow impersonation)
+gcloud iam service-accounts add-iam-policy-binding <service_account> --member=<member> --role=<role>
+
+$ role: echo "roles/iam.serviceAccountUser roles/iam.serviceAccountTokenCreator" | tr ' ' '\n'
+$ member: echo "user:<user_email> serviceAccount:<sa_email> group:<group_email>"
 
 #-------------------------------------------------------------------------------
 # DNS
@@ -56,7 +71,6 @@ $ member: echo "<type>:<email>"
 @ gcloud, common
 # Export a DNS zone to a YAML file
 gcloud dns record-sets export <output_file_name>.yaml --zone=<dns_zone> --project=<project>
-
 
 #-------------------------------------------------------------------------------
 # Secrets Manager
@@ -72,6 +86,10 @@ gcloud secrets list --project=<project>
 # Access the latest version of a secret and decode it
 gcloud secrets versions access latest --secret=<secret_name> --project=<project> --format='get(payload.data)' | tr '_-' '/+' | base64 -d
 
+% gcloud, secret, access, env
+@ gcloud, common
+# Access a JSON secret and convert its key-value pairs into a .env file
+gcloud secrets versions access latest --secret=<secret_name> --project=<project> | jq -r '. | to_entries | .[] | "\(.key | ascii_upcase)=\(.value)"' > .env
 
 #-------------------------------------------------------------------------------
 # GKE (Kubernetes Engine)
@@ -129,3 +147,132 @@ gcloud auth login
 # Print an access token for an impersonated service account
 gcloud auth print-access-token --impersonate-service-account=<service_account>
 
+% gcloud, auth, login, adc
+# Authenticate with your user account and update Application Default Credentials
+gcloud auth login --update-adc
+
+% gcloud, auth, token, identity, impersonate
+@ gcloud, common
+# Print an OIDC identity token for an impersonated service account for a specific audience
+gcloud auth print-identity-token --impersonate-service-account=<service_account> --audiences=<audience>
+
+$ audience: echo "https://<your-cloud-run-or-function-url>"
+
+#-------------------------------------------------------------------------------
+# Artifact Registry
+#-------------------------------------------------------------------------------
+
+% gcloud, artifactregistry, docker, auth
+@ gcloud, common
+# Configure Docker to authenticate with an Artifact Registry Docker repository
+gcloud auth configure-docker <compute_region>-docker.pkg.dev
+
+#-------------------------------------------------------------------------------
+# Compute Engine
+#-------------------------------------------------------------------------------
+
+% gcloud, compute, instance, list
+@ gcloud, common
+# List Compute Engine instances in a project
+gcloud compute instances list --project=<project>
+
+% gcloud, compute, ssh
+@ gcloud, common
+# Connect to a Compute Engine instance using SSH
+gcloud compute ssh <instance_name> --zone=<compute_zone> --project=<project>
+
+$ compute_zone: gcloud compute zones list --format='value(name)'
+$ instance_name: gcloud compute instances list --format='value(name)' --project=<project>
+
+% gcloud, compute, instance, start
+@ gcloud, common
+# Start a Compute Engine instance
+gcloud compute instances start <instance_name> --zone=<compute_zone> --project=<project>
+
+$ compute_zone: gcloud compute zones list --format='value(name)'
+$ instance_name: gcloud compute instances list --filter="status:TERMINATED" --format='value(name)' --project=<project>
+
+% gcloud, compute, instance, stop
+@ gcloud, common
+# Stop a Compute Engine instance
+gcloud compute instances stop <instance_name> --zone=<compute_zone> --project=<project>
+
+$ compute_zone: gcloud compute zones list --format='value(name)' --project=<project>
+$ instance_name: gcloud compute instances list --filter="status:RUNNING" --format='value(name)' --project=<project>
+
+#-------------------------------------------------------------------------------
+# Cloud Storage
+#-------------------------------------------------------------------------------
+
+% gcloud, storage, cp, recursive
+# Recursively copy files and directories from a source to a destination
+gcloud storage cp --recursive <source> <destination>
+
+$ source: echo "gs://<bucket>/<path>"
+$ destination: echo "gs://<bucket>/<path>"
+
+% gcloud, storage, bucket, iam, add
+@ gcloud, common
+# Add an IAM policy binding to a Cloud Storage bucket
+gcloud storage buckets add-iam-policy-binding gs://<bucket_name> --member=<member> --role=<role>
+
+$ bucket_name: gcloud storage buckets list --format='value(name)'
+$ role: echo "roles/storage.objectViewer roles/storage.objectCreator roles/storage.objectAdmin" | tr ' ' '\n'
+$ member: echo "user:<user_email> serviceAccount:<sa_email> group:<group_email>"
+
+#-------------------------------------------------------------------------------
+# Workload Identity Federation
+#-------------------------------------------------------------------------------
+
+% gcloud, iam, wif, pool, create
+@ gcloud, common
+# Create a Workload Identity Pool
+gcloud iam workload-identity-pools create <pool_name> \
+  --project=<project> \
+  --location=global \
+  --display-name="<display_name>"
+
+% gcloud, iam, wif, provider, create
+@ gcloud, common
+# Create a Workload Identity Pool OIDC provider (e.g., for GitHub Actions)
+gcloud iam workload-identity-pools providers create-oidc <provider_name> \
+  --project=<project> \
+  --location=global \
+  --workload-identity-pool=<pool_name> \
+  --display-name="<display_name>" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
+  --issuer-uri="https://token.actions.githubusercontent.com"
+
+$ pool_name: gcloud iam workload-identity-pools list --location=global --format='value(name.split("/").slice(-1).join())'
+
+#-------------------------------------------------------------------------------
+# Cloud SQL
+#-------------------------------------------------------------------------------
+
+% gcloud, sql, instance, list
+@ gcloud, common
+# List Cloud SQL instances in a project
+gcloud sql instances list --project=<project>
+
+% gcloud, sql, backup, create
+@ gcloud, common
+# Create a new backup for a Cloud SQL instance
+gcloud sql backups create --instance=<sql_instance> --description=<description> --project=<project> --async
+
+$ sql_instance: gcloud sql instances list --format='value(name)' --project=<project>
+
+#-------------------------------------------------------------------------------
+# Services & Logging
+#-------------------------------------------------------------------------------
+
+% gcloud, services, list, enabled
+@ gcloud, common
+# List all enabled APIs/services for a project
+gcloud services list --enabled --project=<project>
+
+% gcloud, logging, read
+@ gcloud, common
+# Read log entries from Cloud Logging with a filter
+gcloud logging read "<filter>" --project=<project> --limit=100
+
+$ filter: echo 'resource.type="cloud_run_revision" resource.labels.service_name="<service_name>" severity>=ERROR'
