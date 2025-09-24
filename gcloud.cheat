@@ -4,11 +4,11 @@
 
 ; These are helper variables used by other cheats.
 $ project: gcloud projects list --format='value(projectId)'
-$ zone: gcloud dns managed-zones list --format='value(name)'
-$ region: gcloud compute regions list --format='value(name)'
-$ cluster: gcloud container clusters list --format='value(name)'
-$ secret_name: gcloud secrets list --format='value(name)'
-$ service_account: gcloud iam service-accounts list --format='value(email)'
+$ dns_zone: gcloud dns managed-zones list --format='value(name)' --project=<project>
+$ compute_region: gcloud compute regions list --format='value(name)'
+$ container_cluster: gcloud container clusters list --format='value(name)' --project=<project> --region=<compute_region>
+$ secret_name: gcloud secrets list --format='value(name)' --project=<project>
+$ service_account: gcloud iam service-accounts list --format='value(email)' --project=<project>
 
 #-------------------------------------------------------------------------------
 # Projects & IAM
@@ -31,20 +31,21 @@ gcloud projects get-iam-policy <project>
 # Find all projects a specific user or service account has IAM roles in
 ```sh
 # This script iterates through all projects and filters IAM policies for the specified member.
-MEMBER='<member_email>' # e.g., user:name@example.com or serviceAccount:sa@project.iam.gserviceaccount.com
-
+_NAVI_CHT_MEMBER='<member>'; \
 for proj in $(gcloud projects list --format="value(projectId)"); do
   ROLES=$(gcloud projects get-iam-policy "$proj" \
     --flatten="bindings" \
-    --filter="bindings.members:$MEMBER" \
+    --filter="bindings.members:${_NAVI_CHT_MEMBER}" \
     --format="table[no-heading](bindings.role)" | tr '\n' ',' | sed 's/,$//')
 
   if [[ -n "$ROLES" ]]; then
-    printf "Project: %-40s Member: %-40s Roles: %s\n" "$proj" "$MEMBER" "$ROLES"
+    printf "Project: %-40s Member: %-40s Roles: %s\n" "$proj" "${_NAVI_CHT_MEMBER}" "$ROLES"
   fi
-done
+done; \
+unset _NAVI_CHT_MEMBER
 ```
-$ member_email: echo "user:my.name@example.com serviceAccount:my-sa@my-project.iam.gserviceaccount.com" | tr ' ' '\n'
+$ type: echo "user serviceAccount group" | tr ' ' '\n'
+$ member: echo "<type>:<email>"
 
 
 #-------------------------------------------------------------------------------
@@ -54,7 +55,7 @@ $ member_email: echo "user:my.name@example.com serviceAccount:my-sa@my-project.i
 % gcloud, dns, export
 @ gcloud, common
 # Export a DNS zone to a YAML file
-gcloud dns record-sets export <output_file_name>.yaml --zone=<zone> --project=<project>
+gcloud dns record-sets export <output_file_name>.yaml --zone=<dns_zone> --project=<project>
 
 
 #-------------------------------------------------------------------------------
@@ -79,7 +80,7 @@ gcloud secrets versions access latest --secret=<secret_name> --project=<project>
 % gcloud, gke, kubeconfig, cluster
 @ gcloud, common
 # Get credentials for a GKE cluster to configure kubectl
-gcloud container clusters get-credentials <cluster> --region <region> --project <project>
+gcloud container clusters get-credentials <container_cluster> --region=<compute_region> --project=<project>
 
 % gcloud, gke, auth, plugin, install
 # Install the GKE auth plugin for kubectl
