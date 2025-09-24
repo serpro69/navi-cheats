@@ -1,0 +1,130 @@
+; Cheatsheet for Google Cloud SDK (gcloud)
+
+% gcloud, common
+
+; These are helper variables used by other cheats.
+$ project: gcloud projects list --format='value(projectId)'
+$ zone: gcloud dns managed-zones list --format='value(name)'
+$ region: gcloud compute regions list --format='value(name)'
+$ cluster: gcloud container clusters list --format='value(name)'
+$ secret_name: gcloud secrets list --format='value(name)'
+$ service_account: gcloud iam service-accounts list --format='value(email)'
+
+#-------------------------------------------------------------------------------
+# Projects & IAM
+#-------------------------------------------------------------------------------
+
+% gcloud, project, list
+# List all accessible projects
+gcloud projects list
+
+% gcloud, project, list, firebase
+# List projects with a specific parent folder and firebase label
+gcloud projects list --filter="parent.id:<parent_id> AND labels.firebase:enabled"
+
+% gcloud, project, iam, get
+@ gcloud, common
+# Get the IAM policy for a project
+gcloud projects get-iam-policy <project>
+
+% gcloud, project, iam, permissions, user
+# Find all projects a specific user or service account has IAM roles in
+```sh
+# This script iterates through all projects and filters IAM policies for the specified member.
+MEMBER='<member_email>' # e.g., user:name@example.com or serviceAccount:sa@project.iam.gserviceaccount.com
+
+for proj in $(gcloud projects list --format="value(projectId)"); do
+  ROLES=$(gcloud projects get-iam-policy "$proj" \
+    --flatten="bindings" \
+    --filter="bindings.members:$MEMBER" \
+    --format="table[no-heading](bindings.role)" | tr '\n' ',' | sed 's/,$//')
+
+  if [[ -n "$ROLES" ]]; then
+    printf "Project: %-40s Member: %-40s Roles: %s\n" "$proj" "$MEMBER" "$ROLES"
+  fi
+done
+```
+$ member_email: echo "user:my.name@example.com serviceAccount:my-sa@my-project.iam.gserviceaccount.com" | tr ' ' '\n'
+
+
+#-------------------------------------------------------------------------------
+# DNS
+#-------------------------------------------------------------------------------
+
+% gcloud, dns, export
+@ gcloud, common
+# Export a DNS zone to a YAML file
+gcloud dns record-sets export <output_file_name>.yaml --zone=<zone> --project=<project>
+
+
+#-------------------------------------------------------------------------------
+# Secrets Manager
+#-------------------------------------------------------------------------------
+
+% gcloud, secret, list
+@ gcloud, common
+# List secrets in a project
+gcloud secrets list --project=<project>
+
+% gcloud, secret, access, decode
+@ gcloud, common
+# Access the latest version of a secret and decode it
+gcloud secrets versions access latest --secret=<secret_name> --project=<project> --format='get(payload.data)' | tr '_-' '/+' | base64 -d
+
+
+#-------------------------------------------------------------------------------
+# GKE (Kubernetes Engine)
+#-------------------------------------------------------------------------------
+
+% gcloud, gke, kubeconfig, cluster
+@ gcloud, common
+# Get credentials for a GKE cluster to configure kubectl
+gcloud container clusters get-credentials <cluster> --region <region> --project <project>
+
+% gcloud, gke, auth, plugin, install
+# Install the GKE auth plugin for kubectl
+gcloud components install gke-gcloud-auth-plugin
+
+
+#-------------------------------------------------------------------------------
+# PAM (Privileged Access Manager)
+#-------------------------------------------------------------------------------
+
+% gcloud, pam, grant, create
+@ gcloud, common
+# Request a temporary privileged access grant (e.g., for 30 minutes)
+gcloud pam grants create \
+  --organization=<organization_id> \
+  --location=global \
+  --entitlement=<entitlement> \
+  --requested-duration=<duration> \
+  --impersonate-service-account=<service_account>
+
+$ duration: echo "30m 1h 1800s" | tr ' ' '\n'
+$ entitlement: gcloud pam entitlements search --organization=<organization_id> --location=global --caller-access-type=grant-requester --format='value(name.split("/").slice(-1).join())'
+
+
+% gcloud, pam, grant, check
+@ gcloud, common
+# Check the status of grants you have created for a specific entitlement
+gcloud pam grants search \
+  --organization=<organization_id> \
+  --location=global \
+  --entitlement=<entitlement> \
+  --caller-relationship=had-created \
+  --impersonate-service-account=<service_account> \
+  --format="table(name, state, timeline.createTime)"
+
+#-------------------------------------------------------------------------------
+# Authentication
+#-------------------------------------------------------------------------------
+
+% gcloud, auth, login
+# Authenticate with your user account
+gcloud auth login
+
+% gcloud, auth, token, impersonate
+@ gcloud, common
+# Print an access token for an impersonated service account
+gcloud auth print-access-token --impersonate-service-account=<service_account>
+
