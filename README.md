@@ -10,4 +10,10 @@ Import the cheatsheets into navi:
 navi repo add serpro69/navi-cheats
 ```
 
-Then you can use the new cheatsheets as normal with navi. See [navi usage](https://github.com/denisidoro/navi/tree/master?tab=readme-ov-file#usage) for more detauls.
+Then you can use the new cheatsheets as normal with navi. See [navi usage](https://github.com/denisidoro/navi/tree/master?tab=readme-ov-file#usage) for more details.
+
+## Features
+
+This repo contains cheatsheets for:
+
+- [gcloud](docs/gcloud.md)
