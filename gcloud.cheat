@@ -6,9 +6,16 @@
 $ project: gcloud projects list --format='value(projectId)'
 $ dns_zone: gcloud dns managed-zones list --format='value(name)' --project=<project>
 $ compute_region: gcloud compute regions list --format='value(name)'
-$ container_cluster: gcloud container clusters list --format='value(name)' --project=<project> --region=<compute_region>
 $ secret_name: gcloud secrets list --format='value(name)' --project=<project>
 $ service_account: gcloud iam service-accounts list --format='value(email)' --project=<project>
+
+#-------------------------------------------------------------------------------
+# Gcloud Components
+#-------------------------------------------------------------------------------
+
+% gcloud, install, gke-gcloud-auth-plugin
+# Install the GKE auth plugin for kubectl
+gcloud components install gke-gcloud-auth-plugin
 
 #-------------------------------------------------------------------------------
 # Projects & IAM
@@ -95,15 +102,12 @@ gcloud secrets versions access latest --secret=<secret_name> --project=<project>
 # GKE (Kubernetes Engine)
 #-------------------------------------------------------------------------------
 
-% gcloud, gke, kubeconfig, cluster
+% gcloud, gke, get-credentials
 @ gcloud, common
 # Get credentials for a GKE cluster to configure kubectl
 gcloud container clusters get-credentials <container_cluster> --region=<compute_region> --project=<project>
 
-% gcloud, gke, auth, plugin, install
-# Install the GKE auth plugin for kubectl
-gcloud components install gke-gcloud-auth-plugin
-
+$ container_cluster: gcloud container clusters list --format='value(name)' --project=<project> --region=<compute_region>
 
 #-------------------------------------------------------------------------------
 # PAM (Privileged Access Manager)
@@ -121,7 +125,6 @@ gcloud pam grants create \
 
 $ duration: echo "30m 1h 1800s" | tr ' ' '\n'
 $ entitlement: gcloud pam entitlements search --organization=<organization_id> --location=global --caller-access-type=grant-requester --format='value(name.split("/").slice(-1).join())'
-
 
 % gcloud, pam, grant, check
 @ gcloud, common
