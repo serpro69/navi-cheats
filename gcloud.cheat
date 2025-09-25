@@ -158,11 +158,7 @@ gcloud auth print-identity-token --impersonate-service-account=<service_account>
 
 $ audience: echo "https://<your-cloud-run-or-function-url>"
 
-#-------------------------------------------------------------------------------
-# Artifact Registry
-#-------------------------------------------------------------------------------
-
-% gcloud, artifactregistry, docker, auth
+% gcloud, auth, configure-docker
 @ gcloud, common
 # Configure Docker to authenticate with an Artifact Registry Docker repository
 gcloud auth configure-docker <compute_region>-docker.pkg.dev
