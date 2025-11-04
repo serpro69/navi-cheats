@@ -261,7 +261,7 @@ gcloud sql backups create --instance=<sql_instance> --description=<description> 
 $ sql_instance: gcloud sql instances list --format='value(name)' --project=<project>
 
 #-------------------------------------------------------------------------------
-# Services & Logging
+# Services
 #-------------------------------------------------------------------------------
 
 % gcloud, services, list, enabled
@@ -269,9 +269,18 @@ $ sql_instance: gcloud sql instances list --format='value(name)' --project=<proj
 # List all enabled APIs/services for a project
 gcloud services list --enabled --project=<project>
 
+#-------------------------------------------------------------------------------
+# Logging
+#-------------------------------------------------------------------------------
+
 % gcloud, logging, read
 @ gcloud, common
 # Read log entries from Cloud Logging with a filter
 gcloud logging read "<filter>" --project=<project> --limit=100
 
 $ filter: echo 'resource.type="cloud_run_revision" resource.labels.service_name="<service_name>" severity>=ERROR'
+
+% gcloud, logging, write
+@ gcloud, common
+# Write a log entry to a given project
+gcloud logging write <log_name> "<log_message>" --project=<project>
