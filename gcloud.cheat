@@ -105,9 +105,10 @@ gcloud secrets versions access latest --secret=<secret_name> --project=<project>
 % gcloud, gke, get-credentials
 @ gcloud, common
 # Get credentials for a GKE cluster to configure kubectl
-gcloud container clusters get-credentials <container_cluster> --region=<compute_region> --project=<project>
+gcloud container clusters get-credentials <container_cluster> --region=<container_location> --project=<project>
 
-$ container_cluster: gcloud container clusters list --format='value(name)' --project=<project> --region=<compute_region>
+$ container_cluster: gcloud container clusters list --format='value(name)' --project=<project> --region=<container_location>
+$ container_location: gcloud container clusters list --project=<project> --format='get(location)'
 
 #-------------------------------------------------------------------------------
 # PAM (Privileged Access Manager)
