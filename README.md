@@ -17,3 +17,4 @@ Then you can use the new cheatsheets as normal with navi. See [navi usage](https
 This repo contains cheatsheets for:
 
 - [gcloud](docs/gcloud.md)
+- [kubectl](docs/kubectl.md)

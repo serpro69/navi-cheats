@@ -51,7 +51,7 @@ kubectl create namespace <namespace_name>
 % kubectl, namespace, delete
 @ kubectl, common
 # Delete a namespace (and all its resources)
-kubectl delete namespace <namespace>
+kubectl delete namespace <namespace> --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl delete namespace <namespace>
 
 #-------------------------------------------------------------------------------
 # Pods
@@ -79,7 +79,7 @@ kubectl describe pod <pod> -n <namespace>
 % kubectl, pod, delete
 @ kubectl, common
 # Delete a pod
-kubectl delete pod <pod> -n <namespace>
+kubectl delete pod <pod> -n <namespace> --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl delete pod <pod> -n <namespace>
 
 % kubectl, pod, logs
 @ kubectl, common
@@ -238,7 +238,7 @@ $ path: find . -name "kustomization.yaml" -o -name "kustomization.yml" | xargs -
 
 % kubectl, kustomize, delete
 # Delete resources from a kustomization directory
-kubectl delete -k <path>
+kubectl delete -k <path> --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl delete -k <path>
 
 % kubectl, kustomize, preview
 # Preview kustomize output without applying
