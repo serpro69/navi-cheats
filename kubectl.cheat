@@ -1,0 +1,538 @@
+; Cheatsheet for kubectl (Kubernetes CLI)
+
+% kubectl, common
+
+; These are helper variables used by other cheats.
+$ namespace: kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+$ pod: kubectl get pods -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+$ deployment: kubectl get deployments -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+$ service: kubectl get services -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+$ secret: kubectl get secrets -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+$ node: kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+$ context: kubectl config get-contexts -o name
+
+#-------------------------------------------------------------------------------
+# Cluster Information
+#-------------------------------------------------------------------------------
+
+% kubectl, cluster, info
+# Display cluster information (API server, CoreDNS, etc.)
+kubectl cluster-info
+
+% kubectl, cluster, nodes
+# List all nodes in the cluster
+kubectl get nodes
+
+% kubectl, cluster, nodes, wide
+# List all nodes with additional details (IP, OS, kernel)
+kubectl get nodes -o wide
+
+% kubectl, context, switch
+@ kubectl, common
+# Switch to a different kubectl context
+kubectl config use-context <context>
+
+% kubectl, context, current
+# Show the current kubectl context
+kubectl config current-context
+
+#-------------------------------------------------------------------------------
+# Namespaces
+#-------------------------------------------------------------------------------
+
+% kubectl, namespace, list
+# List all namespaces
+kubectl get namespaces
+
+% kubectl, namespace, create
+# Create a new namespace
+kubectl create namespace <namespace_name>
+
+% kubectl, namespace, delete
+@ kubectl, common
+# Delete a namespace (and all its resources)
+kubectl delete namespace <namespace>
+
+#-------------------------------------------------------------------------------
+# Pods
+#-------------------------------------------------------------------------------
+
+% kubectl, pod, list
+@ kubectl, common
+# List pods in a namespace
+kubectl get pods -n <namespace>
+
+% kubectl, pod, list, all
+# List pods in all namespaces
+kubectl get pods -A
+
+% kubectl, pod, list, wide
+@ kubectl, common
+# List pods with additional details (node, IP)
+kubectl get pods -n <namespace> -o wide
+
+% kubectl, pod, describe
+@ kubectl, common
+# Describe a pod (events, containers, volumes)
+kubectl describe pod <pod> -n <namespace>
+
+% kubectl, pod, delete
+@ kubectl, common
+# Delete a pod
+kubectl delete pod <pod> -n <namespace>
+
+% kubectl, pod, logs
+@ kubectl, common
+# View logs from a pod
+kubectl logs <pod> -n <namespace>
+
+% kubectl, pod, logs, follow
+@ kubectl, common
+# Stream logs from a pod
+kubectl logs <pod> -n <namespace> -f
+
+% kubectl, pod, logs, tail
+@ kubectl, common
+# View last N lines of logs from a pod
+kubectl logs <pod> -n <namespace> --tail=<lines>
+
+$ lines: echo "50 100 200 500" | tr ' ' '\n'
+
+% kubectl, pod, logs, label
+@ kubectl, common
+# Stream logs from pods matching a label selector
+kubectl logs -l <label_selector> -n <namespace> -f
+
+$ label_selector: kubectl get pods -n <namespace> -o jsonpath='{range .items[*].metadata.labels}{range $k, $v := @}{$k}={$v}{"\n"}{end}{end}' | sort -u | head -20
+
+% kubectl, pod, logs, deployment
+@ kubectl, common
+# View logs from a deployment
+kubectl logs deployments/<deployment> -n <namespace> --tail=<lines>
+
+% kubectl, pod, exec
+@ kubectl, common
+# Execute a command in a pod
+kubectl exec -it <pod> -n <namespace> -- <command>
+
+$ command: echo "/bin/sh /bin/bash" | tr ' ' '\n'
+
+% kubectl, pod, run, interactive
+# Run an interactive pod for debugging
+kubectl run <pod_name> --rm -it --image=<image> -- <shell>
+
+$ image: echo "busybox alpine nginx curlimages/curl nicolaka/netshoot" | tr ' ' '\n'
+$ shell: echo "sh bash" | tr ' ' '\n'
+
+#-------------------------------------------------------------------------------
+# Deployments
+#-------------------------------------------------------------------------------
+
+% kubectl, deployment, list
+@ kubectl, common
+# List deployments in a namespace
+kubectl get deployments -n <namespace>
+
+% kubectl, deployment, list, all
+# List deployments in all namespaces
+kubectl get deployments -A
+
+% kubectl, deployment, describe
+@ kubectl, common
+# Describe a deployment
+kubectl describe deployment <deployment> -n <namespace>
+
+% kubectl, deployment, rollout, restart
+@ kubectl, common
+# Restart a deployment (rolling restart)
+kubectl rollout restart deployment/<deployment> -n <namespace>
+
+% kubectl, deployment, rollout, status
+@ kubectl, common
+# Check the status of a deployment rollout
+kubectl rollout status deployment/<deployment> -n <namespace>
+
+% kubectl, deployment, scale
+@ kubectl, common
+# Scale a deployment to a specific number of replicas
+kubectl scale deployment/<deployment> -n <namespace> --replicas=<replicas>
+
+$ replicas: echo "0 1 2 3 5" | tr ' ' '\n'
+
+#-------------------------------------------------------------------------------
+# Services
+#-------------------------------------------------------------------------------
+
+% kubectl, service, list
+@ kubectl, common
+# List services in a namespace
+kubectl get services -n <namespace>
+
+% kubectl, service, list, all
+# List services in all namespaces
+kubectl get services -A
+
+% kubectl, service, describe
+@ kubectl, common
+# Describe a service
+kubectl describe service <service> -n <namespace>
+
+% kubectl, service, port-forward
+@ kubectl, common
+# Forward a local port to a service
+kubectl port-forward services/<service> <local_port>:<remote_port> -n <namespace>
+
+$ remote_port: kubectl get service <service> -n <namespace> -o jsonpath='{range .spec.ports[*]}{.port}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# Secrets
+#-------------------------------------------------------------------------------
+
+% kubectl, secret, list
+@ kubectl, common
+# List secrets in a namespace
+kubectl get secrets -n <namespace>
+
+% kubectl, secret, describe
+@ kubectl, common
+# Describe a secret (shows metadata, not values)
+kubectl describe secret <secret> -n <namespace>
+
+% kubectl, secret, get, data
+@ kubectl, common
+# Get secret data keys (base64 encoded)
+kubectl get secret <secret> -n <namespace> -o jsonpath='{.data}'
+
+% kubectl, secret, decode
+@ kubectl, common
+# Decode a specific key from a secret
+kubectl get secret <secret> -n <namespace> -o jsonpath='{.data.<key>}' | base64 -d
+
+$ key: kubectl get secret <secret> -n <namespace> -o jsonpath='{range .data}{@}{"\n"}{end}' | head -1
+
+#-------------------------------------------------------------------------------
+# ConfigMaps
+#-------------------------------------------------------------------------------
+
+% kubectl, configmap, list
+@ kubectl, common
+# List configmaps in a namespace
+kubectl get configmaps -n <namespace>
+
+% kubectl, configmap, describe
+@ kubectl, common
+# Describe a configmap
+kubectl describe configmap <configmap> -n <namespace>
+
+$ configmap: kubectl get configmaps -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# Kustomize
+#-------------------------------------------------------------------------------
+
+% kubectl, kustomize, apply
+# Apply resources from a kustomization directory
+kubectl apply -k <path>
+
+$ path: find . -name "kustomization.yaml" -o -name "kustomization.yml" | xargs -I{} dirname {} 2>/dev/null
+
+% kubectl, kustomize, delete
+# Delete resources from a kustomization directory
+kubectl delete -k <path>
+
+% kubectl, kustomize, preview
+# Preview kustomize output without applying
+kubectl kustomize <path>
+
+#-------------------------------------------------------------------------------
+# Resource Selection
+#-------------------------------------------------------------------------------
+
+% kubectl, get, all, label
+@ kubectl, common
+# Get all resources with a specific label
+kubectl get all -l <label_key>=<label_value> -A
+
+$ label_key: echo "app app.kubernetes.io/name app.kubernetes.io/instance" | tr ' ' '\n'
+
+% kubectl, get, multiple, label
+@ kubectl, common
+# Get multiple resource types with a label
+kubectl get pods,services,deployments -l <label_key>=<label_value> -n <namespace>
+
+#-------------------------------------------------------------------------------
+# CRDs & API Resources
+#-------------------------------------------------------------------------------
+
+% kubectl, api-resources
+# List all available API resources
+kubectl api-resources
+
+% kubectl, api-resources, search
+# Search for API resources by name
+kubectl api-resources | grep -i <search_term>
+
+% kubectl, crd, list
+# List all Custom Resource Definitions
+kubectl get crd
+
+% kubectl, crd, search
+# Search for CRDs by name
+kubectl get crd | grep -i <search_term>
+
+% kubectl, crd, describe
+# Describe a CRD
+kubectl get crd <crd_name> -o yaml | head -100
+
+$ crd_name: kubectl get crd -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# YAML/JSON Output
+#-------------------------------------------------------------------------------
+
+% kubectl, get, yaml
+@ kubectl, common
+# Get a resource as YAML
+kubectl get <resource_type> <resource_name> -n <namespace> -o yaml
+
+$ resource_type: echo "pod deployment service secret configmap" | tr ' ' '\n'
+$ resource_name: kubectl get <resource_type> -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, get, jsonpath
+@ kubectl, common
+# Get a specific field using jsonpath
+kubectl get <resource_type> <resource_name> -n <namespace> -o jsonpath='{<jsonpath>}'
+
+$ jsonpath: echo ".status .spec .metadata.labels .metadata.annotations" | tr ' ' '\n'
+
+#===============================================================================
+# DEBUGGING CHEATS
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Gateway API Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, gateway, list
+@ kubectl, common
+# List all Gateways in a namespace
+kubectl get gateways.gateway.networking.k8s.io -n <namespace>
+
+$ namespace: kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' --- --preview "kubectl get gateways.gateway.networking.k8s.io -n {} 2>/dev/null || echo 'No gateways'"
+
+% kubectl, debug, gateway, describe
+@ kubectl, common
+# Describe a Gateway (listeners, addresses, conditions)
+kubectl describe gateway <gateway> -n <namespace>
+
+$ gateway: kubectl get gateways.gateway.networking.k8s.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, gateway, status
+@ kubectl, common
+# Get Gateway status section
+kubectl get gateway <gateway> -n <namespace> -o yaml | grep -A50 "status:"
+
+% kubectl, debug, gateway, class, list
+# List all GatewayClasses
+kubectl get gatewayclasses.gateway.networking.k8s.io
+
+% kubectl, debug, gateway, class, describe
+# Describe a GatewayClass
+kubectl describe gatewayclass <gatewayclass>
+
+$ gatewayclass: kubectl get gatewayclasses.gateway.networking.k8s.io -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, httproute, list
+@ kubectl, common
+# List HTTPRoutes in a namespace
+kubectl get httproutes.gateway.networking.k8s.io -n <namespace>
+
+% kubectl, debug, httproute, describe
+@ kubectl, common
+# Describe an HTTPRoute (rules, backends, conditions)
+kubectl describe httproute <httproute> -n <namespace>
+
+$ httproute: kubectl get httproutes.gateway.networking.k8s.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, httproute, status
+@ kubectl, common
+# Get HTTPRoute status (accepted/attached conditions)
+kubectl get httproute <httproute> -n <namespace> -o jsonpath='{.status.parents[0].conditions}'
+
+#-------------------------------------------------------------------------------
+# Envoy Gateway Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, envoy, pods
+@ kubectl, common
+# List Envoy Gateway pods
+kubectl get pods -n <namespace> -l gateway.envoyproxy.io/owning-gateway-name=<gateway>
+
+% kubectl, debug, envoy, logs
+@ kubectl, common
+# Stream logs from Envoy proxy pods
+kubectl logs -l gateway.envoyproxy.io/owning-gateway-name=<gateway> -n <namespace> --follow
+
+% kubectl, debug, envoy, gateway, logs
+# View Envoy Gateway controller logs
+kubectl logs deployments/envoy-gateway -n envoy-gateway-system --tail=<lines>
+
+% kubectl, debug, envoy, securitypolicy, list
+@ kubectl, common
+# List Envoy Gateway SecurityPolicies
+kubectl get securitypolicies.gateway.envoyproxy.io -n <namespace>
+
+% kubectl, debug, envoy, securitypolicy, describe
+@ kubectl, common
+# Describe an Envoy Gateway SecurityPolicy
+kubectl describe securitypolicy <securitypolicy> -n <namespace>
+
+$ securitypolicy: kubectl get securitypolicies.gateway.envoyproxy.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, envoy, clienttrafficpolicy, list
+@ kubectl, common
+# List Envoy Gateway ClientTrafficPolicies
+kubectl get clienttrafficpolicies.gateway.envoyproxy.io -n <namespace>
+
+% kubectl, debug, envoy, clienttrafficpolicy, describe
+@ kubectl, common
+# Describe an Envoy Gateway ClientTrafficPolicy
+kubectl describe clienttrafficpolicy <clienttrafficpolicy> -n <namespace>
+
+$ clienttrafficpolicy: kubectl get clienttrafficpolicies.gateway.envoyproxy.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# Cert Manager Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, certmanager, certificates, list
+@ kubectl, common
+# List certificates in a namespace
+kubectl get certificates.cert-manager.io -n <namespace>
+
+% kubectl, debug, certmanager, certificates, describe
+@ kubectl, common
+# Describe a certificate (status, conditions, secret)
+kubectl describe certificate <certificate> -n <namespace>
+
+$ certificate: kubectl get certificates.cert-manager.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, certmanager, clusterissuer, list
+# List all ClusterIssuers
+kubectl get clusterissuers.cert-manager.io
+
+% kubectl, debug, certmanager, clusterissuer, status
+# Get ClusterIssuer status
+kubectl get clusterissuer <clusterissuer> -o yaml | grep -A10 "status:"
+
+$ clusterissuer: kubectl get clusterissuers.cert-manager.io -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, certmanager, logs
+# View cert-manager controller logs
+kubectl logs deployments/cert-manager -n cert-manager --tail=<lines>
+
+% kubectl, debug, certmanager, logs, gateway
+# View cert-manager logs filtered for gateway-related entries
+kubectl logs deployments/cert-manager -n cert-manager | grep -i "gateway\|certificate" | tail -<lines>
+
+% kubectl, debug, certmanager, challenges
+@ kubectl, common
+# List ACME challenges (useful for Let's Encrypt debugging)
+kubectl get challenges.acme.cert-manager.io -n <namespace>
+
+% kubectl, debug, certmanager, orders
+@ kubectl, common
+# List ACME orders
+kubectl get orders.acme.cert-manager.io -n <namespace>
+
+#-------------------------------------------------------------------------------
+# External Secrets Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, externalsecrets, secretstore, list
+@ kubectl, common
+# List SecretStores in a namespace
+kubectl get secretstores.external-secrets.io -n <namespace>
+
+% kubectl, debug, externalsecrets, secretstore, describe
+@ kubectl, common
+# Describe a SecretStore (provider config, conditions)
+kubectl describe secretstore <secretstore> -n <namespace>
+
+$ secretstore: kubectl get secretstores.external-secrets.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, externalsecrets, externalsecret, list
+@ kubectl, common
+# List ExternalSecrets in a namespace
+kubectl get externalsecrets.external-secrets.io -n <namespace>
+
+% kubectl, debug, externalsecrets, externalsecret, describe
+@ kubectl, common
+# Describe an ExternalSecret
+kubectl describe externalsecret <externalsecret> -n <namespace>
+
+$ externalsecret: kubectl get externalsecrets.external-secrets.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, externalsecrets, pods
+# List External Secrets Operator pods
+kubectl get pods -n external-secrets-system
+
+#-------------------------------------------------------------------------------
+# Network Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, network, curl
+@ kubectl, common
+# Run a curl pod to test network connectivity
+kubectl run curl-test --rm -it --image=curlimages/curl --restart=Never -n <namespace> -- <url>
+
+% kubectl, debug, network, dns
+@ kubectl, common
+# Run a pod to test DNS resolution
+kubectl run dns-test --rm -it --image=busybox --restart=Never -n <namespace> -- nslookup <hostname>
+
+% kubectl, debug, network, netshoot
+@ kubectl, common
+# Run a netshoot pod for advanced network debugging
+kubectl run netshoot --rm -it --image=nicolaka/netshoot --restart=Never -n <namespace> -- /bin/bash
+
+% kubectl, debug, endpoints
+@ kubectl, common
+# List endpoints for a service (shows which pods are backing it)
+kubectl get endpoints <service> -n <namespace>
+
+#-------------------------------------------------------------------------------
+# Node Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, node, describe
+@ kubectl, common
+# Describe a node (capacity, conditions, pods)
+kubectl describe node <node>
+
+% kubectl, debug, node, top
+# Show resource usage for nodes
+kubectl top nodes
+
+% kubectl, debug, pod, top
+@ kubectl, common
+# Show resource usage for pods in a namespace
+kubectl top pods -n <namespace>
+
+#-------------------------------------------------------------------------------
+# Events & Troubleshooting
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, events
+@ kubectl, common
+# List events in a namespace (sorted by time)
+kubectl get events -n <namespace> --sort-by='.lastTimestamp'
+
+% kubectl, debug, events, warnings
+@ kubectl, common
+# List only warning events in a namespace
+kubectl get events -n <namespace> --field-selector type=Warning
+
+% kubectl, debug, events, all
+# List events across all namespaces
+kubectl get events -A --sort-by='.lastTimestamp' | tail -50
