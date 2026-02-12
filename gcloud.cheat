@@ -208,8 +208,8 @@ $ instance_name: gcloud compute instances list --filter="status:RUNNING" --forma
 # Recursively copy files and directories from a source to a destination
 gcloud storage cp --recursive <source> <destination>
 
-$ source: echo "gs://<bucket>/<path>"
-$ destination: echo "gs://<bucket>/<path>"
+$ source: echo "gs://<src_bucket>/<src_path>"
+$ destination: echo "gs://<dest_bucket>/<dest_path>"
 
 % gcloud, storage, bucket, iam, add
 @ gcloud, common
