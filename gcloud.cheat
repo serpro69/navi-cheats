@@ -107,6 +107,11 @@ gcloud secrets versions access latest --secret=<secret_name> --project=<project>
 # Get credentials for a GKE cluster to configure kubectl
 gcloud container clusters get-credentials <container_cluster> --region=<container_location> --project=<project>
 
+% gcloud, gke, get-credentials, dns-endpoint
+@ gcloud, common
+# Get credentials using DNS endpoint for a GKE cluster to configure kubectl
+gcloud container clusters get-credentials <container_cluster> --region=<container_location> --project=<project> --dns-endpoint
+
 $ container_cluster: gcloud container clusters list --format='value(name)' --project=<project> --region=<container_location>
 $ container_location: gcloud container clusters list --project=<project> --format='get(location)'
 
