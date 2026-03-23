@@ -4,8 +4,9 @@
 
 ; These are helper variables used by other cheats.
 $ project: gcloud projects list --format='value(projectId)'
-$ dns_zone: gcloud dns managed-zones list --format='value(name)' --project=<project>
 $ compute_region: gcloud compute regions list --format='value(name)'
+$ dns_zone: gcloud dns managed-zones list --format='value(name)' --project=<project>
+$ iam_roles: gcloud iam roles list --format='value(name)'
 $ secret_name: gcloud secrets list --format='value(name)' --project=<project>
 $ service_account: gcloud iam service-accounts list --format='value(email)' --project=<project>
 
@@ -35,16 +36,14 @@ gcloud projects list --filter="parent.id:<parent_id> AND labels.firebase:enabled
 gcloud projects get-iam-policy <project>
 
 % gcloud, project, iam, get, role, members
+@ gcloud, common
 # Get the IAM members for a given role in a project
-gcloud projects get-iam-policy <project> --flatten='bindings[].members' --filter='bindings.role=<role>' --format='value(bindings.members)'
-
-$ project: gcloud projects list --format='value(projectId)'
-$ role: gcloud iam roles list --format='value(name)'
+gcloud projects get-iam-policy <project> --flatten='bindings[].members' --filter='bindings.role=<iam_roles>' --format='value(bindings.members)'
 
 % gcloud, project, iam, add
 @ gcloud, common
 # Add an IAM policy binding to a project
-gcloud projects add-iam-policy-binding <project> --member=<member> --role=<role>
+gcloud projects add-iam-policy-binding <project> --member=<member> --role=<iam_roles>
 
 $ role: gcloud iam roles list --format='value(name)'
 $ member: echo "user:<user_email> serviceAccount:<sa_email> group:<group_email>"
@@ -106,11 +105,9 @@ gcloud secrets versions access latest --secret=<secret_name> --project=<project>
 gcloud secrets versions access latest --secret=<secret_name> --project=<project> | jq -r '. | to_entries | .[] | "\(.key | ascii_upcase)=\(.value)"' > .env
 
 % gcloud, secret, get, iam
-@ gcloud, iam
-# Get AIM policy members/roles for a secret
-gcloud secrets get-iam-policy <secret> --project=<project> --flatten='bindings[].members' --format='table(bindings.members, bindings.role)'
-
-$ secret: gcloud secrets list --project=<project>
+@ gcloud, common
+# Get IAM policy members/roles for a secret
+gcloud secrets get-iam-policy <secret_name> --project=<project> --flatten='bindings[].members' --format='table(bindings.members, bindings.role)'
 
 #-------------------------------------------------------------------------------
 # GKE (Kubernetes Engine)
