@@ -105,6 +105,13 @@ gcloud secrets versions access latest --secret=<secret_name> --project=<project>
 # Access a JSON secret and convert its key-value pairs into a .env file
 gcloud secrets versions access latest --secret=<secret_name> --project=<project> | jq -r '. | to_entries | .[] | "\(.key | ascii_upcase)=\(.value)"' > .env
 
+% gcloud, secret, get, iam
+@ gcloud, iam
+# Get AIM policy members/roles for a secret
+gcloud secrets get-iam-policy <secret> --project=<project> --flatten='bindings[].members' --format='table(bindings.members, bindings.role)'
+
+$ secret: gcloud secrets list --project=<project>
+
 #-------------------------------------------------------------------------------
 # GKE (Kubernetes Engine)
 #-------------------------------------------------------------------------------
