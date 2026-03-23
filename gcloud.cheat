@@ -34,12 +34,19 @@ gcloud projects list --filter="parent.id:<parent_id> AND labels.firebase:enabled
 # Get the IAM policy for a project
 gcloud projects get-iam-policy <project>
 
+% gcloud, project, iam, get, role, members
+# Get the IAM members for a given role in a project
+gcloud projects get-iam-policy <project> --flatten='bindings[].members' --filter='bindings.role=<role>' --format='value(bindings.members)'
+
+$ project: gcloud projects list --format='value(projectId)'
+$ role: gcloud iam roles list --format='value(name)'
+
 % gcloud, project, iam, add
 @ gcloud, common
 # Add an IAM policy binding to a project
 gcloud projects add-iam-policy-binding <project> --member=<member> --role=<role>
 
-$ role: gcloud iam roles list --project=<project> --format='value(name)'
+$ role: gcloud iam roles list --format='value(name)'
 $ member: echo "user:<user_email> serviceAccount:<sa_email> group:<group_email>"
 
 % gcloud, project, iam, permissions, user
