@@ -36,6 +36,43 @@ kubectl config use-context <context>
 # Show the current kubectl context
 kubectl config current-context
 
+% kubectl, context, list
+# List all kubectl contexts
+kubectl config get-contexts
+
+% kubectl, context, rename
+@ kubectl, common
+# Rename a kubectl context (e.g. shorten a long GKE context name)
+kubectl config rename-context <context> <new_name>
+
+% kubectl, context, delete
+@ kubectl, common
+# Delete a kubectl context
+kubectl config delete-context <context>
+
+#-------------------------------------------------------------------------------
+# Node Maintenance
+#-------------------------------------------------------------------------------
+
+% kubectl, node, cordon
+@ kubectl, common
+# Mark a node as unschedulable
+kubectl cordon <node>
+
+% kubectl, node, uncordon
+@ kubectl, common
+# Mark a node as schedulable again
+kubectl uncordon <node>
+
+% kubectl, node, drain
+@ kubectl, common
+# Drain a node for maintenance (evicts all pods)
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
+
+% kubectl, node, wait, ready
+# Wait for all nodes to become Ready
+kubectl wait --for=condition=Ready nodes --all --timeout=600s
+
 #-------------------------------------------------------------------------------
 # Namespaces
 #-------------------------------------------------------------------------------
@@ -71,6 +108,16 @@ kubectl get pods -A
 # List pods with additional details (node, IP)
 kubectl get pods -n <namespace> -o wide
 
+% kubectl, pod, list, watch
+@ kubectl, common
+# Watch pods in a namespace
+kubectl get pods -n <namespace> -w
+
+% kubectl, pod, list, labels
+@ kubectl, common
+# List pods with their labels
+kubectl get pods -n <namespace> --show-labels
+
 % kubectl, pod, describe
 @ kubectl, common
 # Describe a pod (events, containers, volumes)
@@ -80,6 +127,13 @@ kubectl describe pod <pod> -n <namespace>
 @ kubectl, common
 # Delete a pod
 kubectl delete pod <pod> -n <namespace> --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl delete pod <pod> -n <namespace>
+
+% kubectl, pod, delete, label
+@ kubectl, common
+# Delete pods matching a label selector
+kubectl delete pods -l <label_selector> -n <namespace> --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl delete pods -l <label_selector> -n <namespace>
+
+$ label_selector: kubectl get pods -n <namespace> -o jsonpath='{range .items[*].metadata.labels}{range $k, $v := @}{$k}={$v}{"\n"}{end}{end}' | sort -u | head -20
 
 % kubectl, pod, logs
 @ kubectl, common
@@ -97,6 +151,18 @@ kubectl logs <pod> -n <namespace> -f
 kubectl logs <pod> -n <namespace> --tail=<lines>
 
 $ lines: echo "50 100 200 500" | tr ' ' '\n'
+
+% kubectl, pod, logs, previous
+@ kubectl, common
+# View logs from the previous (crashed/restarted) container instance
+kubectl logs <pod> -n <namespace> --previous
+
+% kubectl, pod, logs, container
+@ kubectl, common
+# View logs from a specific container in a multi-container pod
+kubectl logs <pod> -c <container> -n <namespace>
+
+$ container: kubectl get pod <pod> -n <namespace> -o jsonpath='{range .spec.containers[*]}{.name}{"\n"}{end}'
 
 % kubectl, pod, logs, label
 @ kubectl, common
@@ -116,6 +182,31 @@ kubectl logs deployments/<deployment> -n <namespace> --tail=<lines>
 kubectl exec -it <pod> -n <namespace> -- <command>
 
 $ command: echo "/bin/sh /bin/bash" | tr ' ' '\n'
+
+% kubectl, pod, exec, container
+@ kubectl, common
+# Execute a command in a specific container of a multi-container pod
+kubectl exec -it <pod> -c <container> -n <namespace> -- <command>
+
+$ container: kubectl get pod <pod> -n <namespace> -o jsonpath='{range .spec.containers[*]}{.name}{"\n"}{end}'
+$ command: echo "/bin/sh /bin/bash" | tr ' ' '\n'
+
+% kubectl, pod, exec, deployment
+@ kubectl, common
+# Execute a command in a deployment's pod (no need to look up the pod name)
+kubectl exec -it deployments/<deployment> -n <namespace> -- <command>
+
+$ command: echo "/bin/sh /bin/bash" | tr ' ' '\n'
+
+% kubectl, pod, env, deployment
+@ kubectl, common
+# Print environment variables from a deployment's pod, filtered by pattern
+kubectl exec deployments/<deployment> -n <namespace> -- printenv | grep -i <pattern>
+
+% kubectl, pod, wait, ready
+@ kubectl, common
+# Wait for all pods in a namespace to become Ready
+kubectl wait --for=condition=Ready pods --all -n <namespace> --timeout=300s
 
 % kubectl, pod, run, interactive
 # Run an interactive pod for debugging
@@ -159,6 +250,18 @@ kubectl scale deployment/<deployment> -n <namespace> --replicas=<replicas>
 
 $ replicas: echo "0 1 2 3 5" | tr ' ' '\n'
 
+% kubectl, deployment, watch
+@ kubectl, common
+# Watch deployments in a namespace (e.g. during a rollout)
+kubectl get deployments -n <namespace> -w
+
+% kubectl, deployment, port-forward
+@ kubectl, common
+# Forward a local port to a deployment's pod
+kubectl port-forward deployments/<deployment> <local_port>:<container_port> -n <namespace>
+
+$ container_port: kubectl get deployment <deployment> -n <namespace> -o jsonpath='{range .spec.template.spec.containers[*].ports[*]}{.containerPort}{"\n"}{end}'
+
 #-------------------------------------------------------------------------------
 # Services
 #-------------------------------------------------------------------------------
@@ -181,6 +284,13 @@ kubectl describe service <service> -n <namespace>
 @ kubectl, common
 # Forward a local port to a service
 kubectl port-forward services/<service> <local_port>:<remote_port> -n <namespace>
+
+$ remote_port: kubectl get service <service> -n <namespace> -o jsonpath='{range .spec.ports[*]}{.port}{"\n"}{end}'
+
+% kubectl, service, port-forward, all-interfaces
+@ kubectl, common
+# Forward a local port to a service, listening on all interfaces (accessible from LAN)
+kubectl port-forward services/<service> <local_port>:<remote_port> -n <namespace> --address 0.0.0.0
 
 $ remote_port: kubectl get service <service> -n <namespace> -o jsonpath='{range .spec.ports[*]}{.port}{"\n"}{end}'
 
@@ -208,7 +318,14 @@ kubectl get secret <secret> -n <namespace> -o jsonpath='{.data}'
 # Decode a specific key from a secret
 kubectl get secret <secret> -n <namespace> -o jsonpath='{.data.<key>}' | base64 -d
 
-$ key: kubectl get secret <secret> -n <namespace> -o jsonpath='{range .data}{@}{"\n"}{end}' | head -1
+$ key: kubectl get secret <secret> -n <namespace> -o go-template='{{range $k, $v := .data}}{{$k}}{{"\n"}}{{end}}'
+
+% kubectl, secret, decode, clipboard
+@ kubectl, common
+# Decode a specific key from a secret and copy it to the clipboard
+kubectl get secret <secret> -n <namespace> -o jsonpath='{.data.<key>}' | base64 -d | xclip -selection clipboard
+
+$ key: kubectl get secret <secret> -n <namespace> -o go-template='{{range $k, $v := .data}}{{$k}}{{"\n"}}{{end}}'
 
 #-------------------------------------------------------------------------------
 # ConfigMaps
@@ -225,6 +342,77 @@ kubectl get configmaps -n <namespace>
 kubectl describe configmap <configmap> -n <namespace>
 
 $ configmap: kubectl get configmaps -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# Jobs & CronJobs
+#-------------------------------------------------------------------------------
+
+% kubectl, job, list
+@ kubectl, common
+# List jobs in a namespace
+kubectl get jobs -n <namespace>
+
+% kubectl, cronjob, list
+@ kubectl, common
+# List cronjobs in a namespace
+kubectl get cronjobs -n <namespace>
+
+% kubectl, cronjob, trigger
+@ kubectl, common
+# Manually trigger a cronjob by creating a job from it
+kubectl create job --from=cronjob/<cronjob> <cronjob>-manual-$(date +%s) -n <namespace>
+
+$ cronjob: kubectl get cronjobs -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, job, logs
+@ kubectl, common
+# View logs from a job's pods
+kubectl logs job/<job> -n <namespace>
+
+$ job: kubectl get jobs -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, job, delete
+@ kubectl, common
+# Delete a job (and its pods)
+kubectl delete job <job> -n <namespace> --dry-run=client && read -p "Execute? [y/N] " c && [[ $c =~ ^[Yy]$ ]] && kubectl delete job <job> -n <namespace>
+
+$ job: kubectl get jobs -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# Storage (PV & PVC)
+#-------------------------------------------------------------------------------
+
+% kubectl, pvc, list
+@ kubectl, common
+# List persistent volume claims in a namespace
+kubectl get pvc -n <namespace>
+
+% kubectl, pvc, describe
+@ kubectl, common
+# Describe a persistent volume claim (status, events, bound volume)
+kubectl describe pvc <pvc> -n <namespace>
+
+$ pvc: kubectl get pvc -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, pv, list
+# List persistent volumes
+kubectl get pv
+
+% kubectl, pv, reclaim-policy
+# List persistent volumes with their reclaim policies and claims
+kubectl get pv -o custom-columns='NAME:.metadata.name,RECLAIM:.spec.persistentVolumeReclaimPolicy,CLAIM:.spec.claimRef.name'
+
+#-------------------------------------------------------------------------------
+# Auth & RBAC
+#-------------------------------------------------------------------------------
+
+% kubectl, auth, can-i
+@ kubectl, common
+# Check if the current user can perform an action on a resource
+kubectl auth can-i <verb> <resource> -n <namespace>
+
+$ verb: echo "get list watch create update patch delete" | tr ' ' '\n'
+$ resource: echo "pods deployments services secrets configmaps daemonsets statefulsets jobs" | tr ' ' '\n'
 
 #-------------------------------------------------------------------------------
 # Kustomize
@@ -473,9 +661,72 @@ kubectl describe externalsecret <externalsecret> -n <namespace>
 
 $ externalsecret: kubectl get externalsecrets.external-secrets.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
 
+% kubectl, debug, externalsecrets, externalsecret, status
+@ kubectl, common
+# Get the Ready condition reason of an ExternalSecret
+kubectl get externalsecret <externalsecret> -n <namespace> -o jsonpath='{.status.conditions[?(@.type=="Ready")].reason}'
+
+$ externalsecret: kubectl get externalsecrets.external-secrets.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, externalsecrets, externalsecret, force-sync
+@ kubectl, common
+# Force an immediate refresh of an ExternalSecret
+kubectl annotate externalsecrets.external-secrets.io <externalsecret> -n <namespace> force-sync=$(date +%s) --overwrite
+
+$ externalsecret: kubectl get externalsecrets.external-secrets.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, externalsecrets, secretstore, force-sync
+@ kubectl, common
+# Force an immediate reconcile of a SecretStore
+kubectl annotate secretstore <secretstore> -n <namespace> force-sync=$(date +%s) --overwrite
+
+$ secretstore: kubectl get secretstores.external-secrets.io -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+% kubectl, debug, externalsecrets, logs
+@ kubectl, common
+# Stream logs from the External Secrets Operator
+kubectl logs -l app.kubernetes.io/name=external-secrets -n <namespace> -f
+
 % kubectl, debug, externalsecrets, pods
 # List External Secrets Operator pods
 kubectl get pods -n external-secrets-system
+
+#-------------------------------------------------------------------------------
+# ArgoCD Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, argocd, port-forward
+# Port-forward the ArgoCD server UI to localhost
+kubectl port-forward services/argocd-server -n argocd <local_port>:80
+
+$ local_port: echo "8080 8081" | tr ' ' '\n'
+
+% kubectl, debug, argocd, password
+# Get the ArgoCD initial admin password and copy it to the clipboard
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d | xclip -selection clipboard
+
+% kubectl, debug, argocd, application, list
+# List ArgoCD applications
+kubectl get applications.argoproj.io -n argocd
+
+% kubectl, debug, argocd, application, status
+# Get sync and health status of an ArgoCD application
+kubectl get application <application> -n argocd -o custom-columns='SYNC:.status.sync.status,HEALTH:.status.health.status'
+
+$ application: kubectl get applications.argoproj.io -n argocd -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+#-------------------------------------------------------------------------------
+# Reloader Debugging
+#-------------------------------------------------------------------------------
+
+% kubectl, debug, reloader, last-reloaded
+@ kubectl, common
+# Show what triggered the last reload of a deployment (Stakater Reloader)
+kubectl get deploy <deployment> -n <namespace> -o jsonpath='{.spec.template.metadata.annotations.reloader\.stakater\.com/last-reloaded-from}'
+
+% kubectl, debug, reloader, logs
+# View Stakater Reloader logs
+kubectl logs deployments/reloader-reloader -n reloader --tail=<lines>
 
 #-------------------------------------------------------------------------------
 # Network Debugging
@@ -509,6 +760,16 @@ kubectl get endpoints <service> -n <namespace>
 @ kubectl, common
 # Describe a node (capacity, conditions, pods)
 kubectl describe node <node>
+
+% kubectl, debug, node, resources
+@ kubectl, common
+# Show allocated resources on a node (CPU/memory requests and limits)
+kubectl describe node <node> | sed -n '/Allocated resources:/,/Events:/p'
+
+% kubectl, debug, node, pods
+@ kubectl, common
+# List all pods running on a specific node
+kubectl get pods -A --field-selector spec.nodeName=<node> -o wide
 
 % kubectl, debug, node, top
 # Show resource usage for nodes

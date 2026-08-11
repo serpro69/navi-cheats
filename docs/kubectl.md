@@ -9,19 +9,25 @@
   - Gateway API / Envoy Gateway
   - Cert Manager
   - External Secrets Operator
+  - ArgoCD
+  - Stakater Reloader
   - Network troubleshooting
 
 ## Sections
 
 | Section | Description |
 |---------|-------------|
-| Cluster Information | Cluster info, nodes, contexts |
+| Cluster Information | Cluster info, nodes, contexts (switch, rename, delete) |
+| Node Maintenance | Cordon, uncordon, drain, wait for Ready |
 | Namespaces | List, create, delete namespaces |
-| Pods | List, describe, logs, exec, run interactive pods |
-| Deployments | List, describe, rollout restart/status, scale |
-| Services | List, describe, port-forward |
-| Secrets | List, describe, decode secret values |
+| Pods | List, describe, logs (container, previous), exec (container, deployment), run interactive pods |
+| Deployments | List, describe, rollout restart/status, scale, watch, port-forward |
+| Services | List, describe, port-forward (incl. all interfaces) |
+| Secrets | List, describe, decode secret values (incl. copy to clipboard) |
 | ConfigMaps | List, describe |
+| Jobs & CronJobs | List, trigger cronjob manually, job logs, delete |
+| Storage (PV & PVC) | List/describe PVCs, PVs, reclaim policies |
+| Auth & RBAC | Check permissions with `auth can-i` |
 | Kustomize | Apply, delete, preview kustomizations |
 | Resource Selection | Query resources by label |
 | CRDs & API Resources | List and search CRDs |
@@ -34,9 +40,11 @@
 | Gateway API | Gateways, GatewayClasses, HTTPRoutes |
 | Envoy Gateway | Proxy pods/logs, SecurityPolicies, ClientTrafficPolicies |
 | Cert Manager | Certificates, ClusterIssuers, challenges, orders |
-| External Secrets | SecretStores, ExternalSecrets |
+| External Secrets | SecretStores, ExternalSecrets, force-sync, Ready status, operator logs |
+| ArgoCD | Port-forward UI, admin password, application sync/health status |
+| Reloader | Last-reloaded-from annotation, controller logs |
 | Network | Test pods (curl, dns, netshoot), endpoints |
-| Node | Describe nodes, resource usage |
+| Node | Describe nodes, resource usage, allocated resources, pods per node |
 | Events | Cluster events, warnings |
 
 ## Usage
